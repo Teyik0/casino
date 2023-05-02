@@ -15,7 +15,30 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body>
+        <div className="flex flex-col min-h-screen">
+          <header className="bg-gray-900 text-white py-4 fixed top-0 left-0 right-0">
+            <nav className="container mx-auto flex justify-between items-center">
+              <a href="/" className="text-2xl font-bold tracking-tight">Virtual Horses</a>
+              <ul className="flex space-x-4">
+                <li><a href="/" className="hover:text-gray-300">Home</a></li>
+                <li><a href="/race" className="hover:text-gray-300">Races</a></li>
+              </ul>
+              <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Connect Wallet
+              </button>
+            </nav>
+          </header>
+          <main className="bg-gray-50 min-h-screen flex flex-col items-center justify-center">
+            {children}
+          </main>
+          <footer className="bg-gray-900 text-white py-4 fixed bottom-0 left-0 right-0">
+            <div className="container mx-auto text-center">
+              <p>&copy; 2023 Virtual Horses. All rights reserved.</p>
+            </div>
+          </footer>
+        </div>
+      </body>
     </html>
   )
 }
