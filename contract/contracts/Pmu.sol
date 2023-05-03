@@ -1,38 +1,103 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.7;
 
+import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
 import "@chainlink/contracts/src/v0.8/VRFV2WrapperConsumerBase.sol";
 
-contract Pmu is VRFV2WrapperConsumerBase {
-    address constant linkAddress = 0x779877A7B0D9E8603169DdbD7836e478b4624789;
-    address constant vrfWrapperAddress =
-        0x2Ca8E0C643bDe4C2E08ab1fA0da3401AdAD7734D;
+contract Pmu is
+    VRFV2WrapperConsumerBase,
+    ConfirmedOwner
+{
+    event RequestSent(uint256 requestId, uint32 numWords);
+    event RequestFulfilled(
+        uint256 requestId,
+        uint256[] randomWords,
+        uint256 payment
+    );
 
-    constructor() VRFV2WrapperConsumerBase(vrfWrapperAddress, linkAddress) {}
+    struct RequestStatus {
+        uint256 paid; // amount paid in link
+        bool fulfilled; // whether the request has been successfully fulfilled
+        uint256[] randomWords;
+    }
+    mapping(uint256 => RequestStatus)
+        public s_requests; /* requestId --> requestStatus */
 
-    uint256 public pmuGameCount = 0;
+    // past requests Id.
+    uint256[] public requestIds;
+    uint256 public lastRequestId;
 
-    struct Horse {
-        uint256 id;
-        uint256 step;
+    uint32 callbackGasLimit = 100000;
+    uint16 requestConfirmations = 3;
+    uint32 numWords = 2;
+
+    // Address hardcoded for Sepolia
+    address linkAddress = 0x779877A7B0D9E8603169DdbD7836e478b4624789;
+    address wrapperAddress = 0xab18414CD93297B0d12ac29E63Ca20f515b3DB46;
+
+    constructor()
+        ConfirmedOwner(msg.sender)
+        VRFV2WrapperConsumerBase(linkAddress, wrapperAddress)
+    {}
+
+    function requestRandomWords()
+        external
+        onlyOwner
+        returns (uint256 requestId)
+    {
+        requestId = requestRandomness(
+            callbackGasLimit,
+            requestConfirmations,
+            numWords
+        );
+        s_requests[requestId] = RequestStatus({
+            paid: VRF_V2_WRAPPER.calculateRequestPrice(callbackGasLimit),
+            randomWords: new uint256[](0),
+            fulfilled: false
+        });
+        requestIds.push(requestId);
+        lastRequestId = requestId;
+        emit RequestSent(requestId, numWords);
+        return requestId;
     }
 
-    Horse[] public horses;
+    uint256 public test = 0;
 
-    function initialize() private {
-        for (uint i = 0; i < 6; i++) {
-            horses[i] = Horse(i, 0);
-        }
-        pmuGameCount++;
+    function fulfillRandomWords(
+        uint256 _requestId,
+        uint256[] memory _randomWords
+    ) internal override {
+        require(s_requests[_requestId].paid > 0, "request not found");
+        s_requests[_requestId].fulfilled = true;
+        s_requests[_requestId].randomWords = _randomWords;
+        test = _randomWords[0];
+        emit RequestFulfilled(
+            _requestId,
+            _randomWords,
+            s_requests[_requestId].paid
+        );
     }
 
-    function participate() public {
-        uint256 vrfSeed = uint256(keccak256(abi.encodePacked(msg.sender)));
+    function getRequestStatus(
+        uint256 _requestId
+    )
+        external
+        view
+        returns (uint256 paid, bool fulfilled, uint256[] memory randomWords)
+    {
+        require(s_requests[_requestId].paid > 0, "request not found");
+        RequestStatus memory request = s_requests[_requestId];
+        return (request.paid, request.fulfilled, request.randomWords);
     }
 
-    function goForward(uint _id) public {
-        Horse memory _horse = horses[_id];
-        _horse.step += 1;
-        horses[_id] = _horse;
+    /**
+     * Allow withdraw of Link tokens from the contract
+     */
+    function withdrawLink() public onlyOwner {
+        LinkTokenInterface link = LinkTokenInterface(linkAddress);
+        require(
+            link.transfer(msg.sender, link.balanceOf(address(this))),
+            "Unable to transfer"
+        );
     }
 }
