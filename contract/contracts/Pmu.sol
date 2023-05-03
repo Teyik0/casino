@@ -1,58 +1,61 @@
 // SPDX-License-Identifier: MIT
+// An example of a consumer contract that relies on a subscription for funding.
 pragma solidity ^0.8.7;
 
+import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
-import "@chainlink/contracts/src/v0.8/VRFV2WrapperConsumerBase.sol";
 
-contract Pmu is
-    VRFV2WrapperConsumerBase,
-    ConfirmedOwner
-{
+contract Pmu is VRFConsumerBaseV2, ConfirmedOwner {
     event RequestSent(uint256 requestId, uint32 numWords);
-    event RequestFulfilled(
-        uint256 requestId,
-        uint256[] randomWords,
-        uint256 payment
-    );
+    event RequestFulfilled(uint256 requestId, uint256[] randomWords);
 
     struct RequestStatus {
-        uint256 paid; // amount paid in link
         bool fulfilled; // whether the request has been successfully fulfilled
+        bool exists; // whether a requestId exists
         uint256[] randomWords;
     }
     mapping(uint256 => RequestStatus)
         public s_requests; /* requestId --> requestStatus */
+    VRFCoordinatorV2Interface COORDINATOR;
 
+    // Your subscription ID.
+    uint64 s_subscriptionId;
     // past requests Id.
     uint256[] public requestIds;
     uint256 public lastRequestId;
 
+    bytes32 keyHash =
+        0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c;
     uint32 callbackGasLimit = 100000;
     uint16 requestConfirmations = 3;
     uint32 numWords = 2;
 
-    // Address hardcoded for Sepolia
-    address linkAddress = 0x779877A7B0D9E8603169DdbD7836e478b4624789;
-    address wrapperAddress = 0xab18414CD93297B0d12ac29E63Ca20f515b3DB46;
-
-    constructor()
+    constructor(
+        uint64 subscriptionId
+    )
+        VRFConsumerBaseV2(0x8103B0A8A00be2DDC778e6e7eaa21791Cd364625)
         ConfirmedOwner(msg.sender)
-        VRFV2WrapperConsumerBase(linkAddress, wrapperAddress)
-    {}
-
-    function requestRandomWords()
-        external
-        onlyOwner
-        returns (uint256 requestId)
     {
-        requestId = requestRandomness(
-            callbackGasLimit,
+        COORDINATOR = VRFCoordinatorV2Interface(
+            0x8103B0A8A00be2DDC778e6e7eaa21791Cd364625
+        );
+        s_subscriptionId = subscriptionId;
+    }
+
+    // Assumes the subscription is funded sufficiently.
+    function requestRandomWords() private returns (uint256 requestId) {
+        // Will revert if subscription is not set and funded.
+        requestId = COORDINATOR.requestRandomWords(
+            keyHash,
+            s_subscriptionId,
             requestConfirmations,
+            callbackGasLimit,
             numWords
         );
         s_requests[requestId] = RequestStatus({
-            paid: VRF_V2_WRAPPER.calculateRequestPrice(callbackGasLimit),
             randomWords: new uint256[](0),
+            exists: true,
             fulfilled: false
         });
         requestIds.push(requestId);
@@ -61,43 +64,75 @@ contract Pmu is
         return requestId;
     }
 
-    uint256 public test = 0;
-
     function fulfillRandomWords(
         uint256 _requestId,
         uint256[] memory _randomWords
     ) internal override {
-        require(s_requests[_requestId].paid > 0, "request not found");
+        require(s_requests[_requestId].exists, "request not found");
         s_requests[_requestId].fulfilled = true;
         s_requests[_requestId].randomWords = _randomWords;
-        test = _randomWords[0];
-        emit RequestFulfilled(
-            _requestId,
-            _randomWords,
-            s_requests[_requestId].paid
-        );
+        emit RequestFulfilled(_requestId, _randomWords);
+        //PMU instruction
+        winnerHorse = _randomWords[0] % 5; //Renvoie le cheval gagnant
     }
 
     function getRequestStatus(
         uint256 _requestId
-    )
-        external
-        view
-        returns (uint256 paid, bool fulfilled, uint256[] memory randomWords)
-    {
-        require(s_requests[_requestId].paid > 0, "request not found");
+    ) external view returns (bool fulfilled, uint256[] memory randomWords) {
+        require(s_requests[_requestId].exists, "request not found");
         RequestStatus memory request = s_requests[_requestId];
-        return (request.paid, request.fulfilled, request.randomWords);
+        return (request.fulfilled, request.randomWords);
     }
 
-    /**
-     * Allow withdraw of Link tokens from the contract
-     */
-    function withdrawLink() public onlyOwner {
-        LinkTokenInterface link = LinkTokenInterface(linkAddress);
+    //PMU contract
+    uint256 public winnerHorse = 0;
+    uint256 public prixParticipation = 1000000000000000; // 0,001 ETH en wei
+    uint256 public cagnotte = 0;
+    uint256 public playersNumber;
+    Player[] public players;
+    address[] winners;
+
+    struct Player {
+        uint256 id;
+        address playerAddress;
+        uint256 horse;
+    }
+
+    function enter(uint256 _horse) public payable {
         require(
-            link.transfer(msg.sender, link.balanceOf(address(this))),
-            "Unable to transfer"
+            msg.value == prixParticipation,
+            "Prix de participation incorrect"
         );
+        cagnotte += msg.value;
+        players.push(Player(playersNumber, msg.sender, _horse));
+        playersNumber++;
+    }
+
+    function startGame(
+        uint256 _winnerHorse
+    ) external onlyOwner returns (address[] memory) {
+        require(playersNumber > 0, "Pas assez de joueurs");
+
+        uint256 winnerCount = 0;
+
+        for (uint256 i = 0; i < playersNumber; i++) {
+            if (players[i].horse == _winnerHorse) {
+                winners[winnerCount] = players[i].playerAddress;
+                winnerCount++;
+            }
+        }
+
+        for (uint256 i = 0; i < winnerCount; i++) {
+            payable(winners[i]).transfer(address(this).balance / winnerCount);
+        }
+
+        //reset complet
+        players = new Player[](0);
+        winners = new address[](0);
+        cagnotte = 0;
+        playersNumber = 0;
+        winnerHorse = 0;
+
+        return winners;
     }
 }
