@@ -17,7 +17,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <div className="flex flex-col min-h-screen">
-          <header className="bg-gray-900 text-white py-4 fixed top-0 left-0 right-0">
+          <header className="bg-gray-900 text-white py-4">
             <nav className="container mx-auto flex justify-between items-center">
               <a href="/" className="text-2xl font-bold tracking-tight">Virtual Horses</a>
               <ul className="flex space-x-4">
@@ -29,14 +29,14 @@ export default function RootLayout({
               </button>
             </nav>
           </header>
-          <main className="bg-gray-50 min-h-screen flex flex-col items-center justify-center">
+          <main className="bg-gray-50 min-h-screen">
             {children}
           </main>
-          <footer className="bg-gray-900 text-white py-4 fixed bottom-0 left-0 right-0">
+          {/* <footer className="bg-gray-900 text-white py-4 fixed bottom-0 left-0 right-0">
             <div className="container mx-auto text-center">
               <p>&copy; 2023 Virtual Horses. All rights reserved.</p>
             </div>
-          </footer>
+          </footer> */}
         </div>
       </body>
     </html>
