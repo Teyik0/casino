@@ -8,6 +8,28 @@ import { publicProvider } from 'wagmi/providers/public';
 import { useContract } from 'wagmi';
 import { atom } from 'jotai';
 
+import {
+  createContext,
+  useContext,
+  Dispatch,
+  SetStateAction,
+  useState,
+  useEffect,
+} from 'react';
+import { ethers } from 'ethers';
+
+interface ContextProps {
+  currentAccount: string;
+  setCurrentAccount: Dispatch<SetStateAction<string>>;
+  contract: ethers.Contract | null;
+}
+
+const GlobalContext = createContext<ContextProps>({
+  currentAccount: '',
+  setCurrentAccount: () => {},
+  contract: null,
+});
+
 const { chains, provider } = configureChains([sepolia], [publicProvider()]);
 
 const { connectors } = getDefaultWallets({
@@ -22,22 +44,30 @@ const wagmiClient = createClient({
   provider,
 });
 
-export const Contract = () => {
+export const Provider = ({ children }: any) => {
+  const [currentAccount, setCurrentAccount] = useState('');
   const contract = useContract({
     address: '0x3cff22aD82AfF52b4d7B7818F3E32Ae9255a67DE',
     abi: abi,
   });
-  return <div></div>;
-};
 
-export const Provider = ({ children }: any) => {
   return (
     <WagmiConfig client={wagmiClient}>
-      <Contract />
-      <RainbowKitProvider chains={chains}>{children}</RainbowKitProvider>
+      <RainbowKitProvider chains={chains}>
+        <GlobalContext.Provider
+          value={{
+            currentAccount,
+            setCurrentAccount,
+            contract,
+          }}
+        >
+          {children}
+        </GlobalContext.Provider>
+      </RainbowKitProvider>
     </WagmiConfig>
   );
 };
+export const useGlobalContext = () => useContext(GlobalContext);
 
 export const selectedHorseAtom = atom<number | undefined>(undefined);
 
