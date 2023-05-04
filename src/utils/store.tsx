@@ -5,7 +5,8 @@ import { configureChains, createClient, WagmiConfig } from 'wagmi';
 import { mainnet, sepolia, polygon, optimism, arbitrum } from 'wagmi/chains';
 import { alchemyProvider } from 'wagmi/providers/alchemy';
 import { publicProvider } from 'wagmi/providers/public';
-import { useContract } from 'wagmi';
+import { useAccount } from 'wagmi';
+import { useContract, useProvider } from 'wagmi';
 import { atom } from 'jotai';
 
 import {
@@ -46,9 +47,12 @@ const wagmiClient = createClient({
 
 export const Provider = ({ children }: any) => {
   const [currentAccount, setCurrentAccount] = useState('');
+  const { address, isConnecting, isDisconnected } = useAccount();
+  const provider = useProvider();
   const contract = useContract({
-    address: '0x3cff22aD82AfF52b4d7B7818F3E32Ae9255a67DE',
+    address: contractAddress,
     abi: abi,
+    signerOrProvider: provider,
   });
 
   return (
@@ -70,6 +74,8 @@ export const Provider = ({ children }: any) => {
 export const useGlobalContext = () => useContext(GlobalContext);
 
 export const selectedHorseAtom = atom<number | undefined>(undefined);
+
+export const contractAddress = '0x177d1312993AC3f1eEF862971ae64324c2d834c7';
 
 export const abi = [
   {
