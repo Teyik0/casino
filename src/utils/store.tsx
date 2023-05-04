@@ -75,17 +75,6 @@ export const abi = [
   {
     inputs: [
       {
-        internalType: 'uint64',
-        name: 'subscriptionId',
-        type: 'uint64',
-      },
-    ],
-    stateMutability: 'nonpayable',
-    type: 'constructor',
-  },
-  {
-    inputs: [
-      {
         internalType: 'address',
         name: 'have',
         type: 'address',
@@ -183,19 +172,6 @@ export const abi = [
     type: 'function',
   },
   {
-    inputs: [],
-    name: 'cagnotte',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
     inputs: [
       {
         internalType: 'uint256',
@@ -206,6 +182,93 @@ export const abi = [
     name: 'enter',
     outputs: [],
     stateMutability: 'payable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'uint256',
+        name: 'requestId',
+        type: 'uint256',
+      },
+      {
+        internalType: 'uint256[]',
+        name: 'randomWords',
+        type: 'uint256[]',
+      },
+    ],
+    name: 'rawFulfillRandomWords',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'requestRandomWords',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: 'requestId',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'uint8',
+        name: '_winnerHorse',
+        type: 'uint8',
+      },
+    ],
+    name: 'startHorse',
+    outputs: [
+      {
+        internalType: 'address[]',
+        name: '',
+        type: 'address[]',
+      },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'to',
+        type: 'address',
+      },
+    ],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'uint64',
+        name: 'subscriptionId',
+        type: 'uint64',
+      },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'constructor',
+  },
+  {
+    inputs: [],
+    name: 'cagnotte',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
     type: 'function',
   },
   {
@@ -277,6 +340,19 @@ export const abi = [
   },
   {
     inputs: [],
+    name: 'getWinners',
+    outputs: [
+      {
+        internalType: 'address[]',
+        name: '',
+        type: 'address[]',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
     name: 'lastRequestId',
     outputs: [
       {
@@ -331,24 +407,6 @@ export const abi = [
     inputs: [
       {
         internalType: 'uint256',
-        name: 'requestId',
-        type: 'uint256',
-      },
-      {
-        internalType: 'uint256[]',
-        name: 'randomWords',
-        type: 'uint256[]',
-      },
-    ],
-    name: 'rawFulfillRandomWords',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint256',
         name: '',
         type: 'uint256',
       },
@@ -362,19 +420,6 @@ export const abi = [
       },
     ],
     stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'requestRandomWords',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: 'requestId',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'nonpayable',
     type: 'function',
   },
   {
@@ -402,45 +447,13 @@ export const abi = [
     type: 'function',
   },
   {
-    inputs: [
-      {
-        internalType: 'uint256',
-        name: '_winnerHorse',
-        type: 'uint256',
-      },
-    ],
-    name: 'startGame',
-    outputs: [
-      {
-        internalType: 'address[]',
-        name: '',
-        type: 'address[]',
-      },
-    ],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: 'to',
-        type: 'address',
-      },
-    ],
-    name: 'transferOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
     inputs: [],
     name: 'winnerHorse',
     outputs: [
       {
-        internalType: 'uint256',
+        internalType: 'uint8',
         name: '',
-        type: 'uint256',
+        type: 'uint8',
       },
     ],
     stateMutability: 'view',

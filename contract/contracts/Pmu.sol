@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-// An example of a consumer contract that relies on a subscription for funding.
 pragma solidity ^0.8.7;
 
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
@@ -44,7 +43,7 @@ contract Pmu is VRFConsumerBaseV2, ConfirmedOwner {
     }
 
     // Assumes the subscription is funded sufficiently.
-    function requestRandomWords() private returns (uint256 requestId) {
+    function requestRandomWords() public onlyOwner returns (uint256 requestId) {
         // Will revert if subscription is not set and funded.
         requestId = COORDINATOR.requestRandomWords(
             keyHash,
@@ -73,7 +72,7 @@ contract Pmu is VRFConsumerBaseV2, ConfirmedOwner {
         s_requests[_requestId].randomWords = _randomWords;
         emit RequestFulfilled(_requestId, _randomWords);
         //PMU instruction
-        winnerHorse = _randomWords[0] % 5; //Renvoie le cheval gagnant
+        winnerHorse = uint8(_randomWords[0] % 4); //Renvoie le cheval gagnant
     }
 
     function getRequestStatus(
@@ -85,17 +84,29 @@ contract Pmu is VRFConsumerBaseV2, ConfirmedOwner {
     }
 
     //PMU contract
-    uint256 public winnerHorse = 0;
+    uint8 public winnerHorse = 0;
     uint256 public prixParticipation = 1000000000000000; // 0,001 ETH en wei
     uint256 public cagnotte = 0;
     uint256 public playersNumber;
-    Player[] public players;
-    address[] winners;
+    address[] private lastWinners;
+    Player[] private players;
 
     struct Player {
         uint256 id;
         address playerAddress;
         uint256 horse;
+    }
+
+    function getPlayers() public view returns (Player[] memory) {
+        return players;
+    }
+
+    function getWinners() public view returns (address[] memory) {
+        return lastWinners;
+    }
+
+    function getContractBalance() public view returns (uint256) {
+        return address(this).balance;
     }
 
     function enter(uint256 _horse) public payable {
@@ -108,12 +119,13 @@ contract Pmu is VRFConsumerBaseV2, ConfirmedOwner {
         playersNumber++;
     }
 
-    function startGame(
-        uint256 _winnerHorse
-    ) external onlyOwner returns (address[] memory) {
+    function startHorse(
+        uint8 _winnerHorse
+    ) public onlyOwner returns (address[] memory) {
         require(playersNumber > 0, "Pas assez de joueurs");
 
         uint256 winnerCount = 0;
+        address[] memory winners;
 
         for (uint256 i = 0; i < playersNumber; i++) {
             if (players[i].horse == _winnerHorse) {
@@ -122,13 +134,16 @@ contract Pmu is VRFConsumerBaseV2, ConfirmedOwner {
             }
         }
 
-        for (uint256 i = 0; i < winnerCount; i++) {
-            payable(winners[i]).transfer(address(this).balance / winnerCount);
+        if (winners.length > 0) {
+            for (uint256 i = 0; i < winnerCount; i++) {
+                payable(winners[i]).transfer(
+                    address(this).balance / winnerCount
+                );
+            }
         }
 
         //reset complet
-        players = new Player[](0);
-        winners = new address[](0);
+        delete players;
         cagnotte = 0;
         playersNumber = 0;
         winnerHorse = 0;
